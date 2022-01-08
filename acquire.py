@@ -4,8 +4,12 @@ from env import api_key
 from datetime import timedelta, datetime
 
 def get_data():
-
     
+    '''
+    This function returns a data frame with 250 day gainers last 5 years of stock prices from yahoo api.
+    Yahoo API returns the closing price for that day.
+    Keep in mind, **FREE** daily pull limit for yahoo api is 100, this functions costs 26 pulls.  
+    '''
 
     url = 'https://yfapi.net/ws/screeners/v1/finance/screener/predefined/saved?count=250&scrIds=day_gainers'
 
@@ -59,9 +63,10 @@ def get_data():
         response = requests.request("GET", f'https://yfapi.net/v8/finance/spark?interval=1d&range=5y&symbols={placeholder}', headers=headers)
         data = response.json()
 
-        # Using the function defined above to create a Data Frame
+        # Extract data and save it to main data frame
         temp = extract_date_and_price(data)
         df = pd.concat([df, temp], axis = 1)
+
     return df
 
 def extract_date_and_price(data):
