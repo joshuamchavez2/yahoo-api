@@ -4,25 +4,101 @@ from env import api_key
 from datetime import timedelta, datetime
 
 def get_data():
-    
-    '''
-    This function returns a data frame with 250 day gainers last 5 years of stock prices from yahoo api.
-    Yahoo API returns the closing price for that day.
-    Keep in mind, **FREE** daily pull limit for yahoo api is 100, this functions costs 26 pulls.  
-    '''
-
-    url = 'https://yfapi.net/ws/screeners/v1/finance/screener/predefined/saved?count=250&scrIds=day_gainers'
 
     headers = {
         'x-api-key': api_key
         }
 
-    # Request data
+    list_of_symbols = get_day_gainers()
+    df = pd.DataFrame()
+    total = len(list_of_symbols)
+    end = ((total//10)*10)+10
+    if total%10 !=0:
+        for y in range(10, end, 10):
+            
+            x = y-10
+
+            placeholder = create_placeholder(list_of_symbols[x:y])
+            response = requests.request("GET", f'https://yfapi.net/v8/finance/spark?interval=1d&range=5y&symbols={placeholder}', headers=headers)
+            data = response.json()
+            
+            temp = pd.DataFrame()
+            # Using the function defined above to create a Data Frame
+            temp = extract_date_and_price(data)
+
+            df = pd.concat([df, temp], axis = 1)
+        
+        temp = pd.DataFrame()
+        placeholder = create_placeholder(list_of_symbols[end-10:total])
+        response = requests.request("GET", f'https://yfapi.net/v8/finance/spark?interval=1d&range=5y&symbols={placeholder}', headers=headers)
+        data = response.json()
+
+        # Using the function defined above to create a Data Frame
+        temp = extract_date_and_price(data)
+
+        df = pd.concat([df, temp], axis = 1)
+    else:
+        for y in range(10, end, 10):
+
+            x = y-10
+
+            placeholder = create_placeholder(list_of_symbols[x:y])
+            response = requests.request("GET", f'https://yfapi.net/v8/finance/spark?interval=1d&range=5y&symbols={placeholder}', headers=headers)
+            data = response.json()
+            
+            temp = pd.DataFrame()
+            
+            # Using the function defined above to create a Data Frame
+            temp = extract_date_and_price(data)
+
+            df = pd.concat([df, temp], axis = 1)
+
+    return df 
+
+def create_placeholder(list_of_symbols):
+    '''
+    This function will take in a list of symbols
+    Creates a single string with no spaces only commas
+    Returns thats string
+    '''
+    
+    # Creating an empty string
+    placeholder = ""
+
+    # Creating a placeholder string from list of symbols
+    for index, symbol in enumerate(list_of_symbols):
+
+        # if index is equal to nine then this is last symbol and doesn't require a comma at the end
+        if index == 9:
+            placeholder += symbol
+
+        # All other index's will require a comma
+        else:
+            placeholder += symbol + ","
+    return placeholder
+
+def get_day_gainers():
+    '''
+    This function uses the yahoo api to grab the top 250 day_gainers.
+    The API returns a json with a quote information about each stock
+    Loop through json file to extract just the stock symbol for each stock
+    Save to list and return that list
+    '''
+    
+    # defining the url to make the request too
+    url = 'https://yfapi.net/ws/screeners/v1/finance/screener/predefined/saved?count=250&scrIds=day_gainers'
+
+    # passing in api_key
+    headers = {
+        'x-api-key': api_key
+        }
+
+    # Sending Request
     response = requests.request("GET", url, headers=headers)
-
-    # Save response to data
+    
+    # Saving request response to data
     data = response.json()
-
+    
     # Creating an empty list to grab the symbols 
     list_of_symbols = []
 
@@ -32,42 +108,8 @@ def get_data():
     # Loop through quotes and save symbol to list
     for quote in quotes:
         list_of_symbols.append(quote['symbol'])
-
-    # Grabbing the price of the most popular 250 stocks for the last 5 years
-
-    df = pd.DataFrame()
-    # Testing out only the first 10 stocks of list_of_stocks
-    for y in range(10, 260, 10):
-        
-        # Resetting temp as an empty Data Frame
-        temp = pd.DataFrame()
-        
-        # Setting x to 10 less than y
-        x = y-10
-
-        # Created an emtpy string
-        placeholder = ""
-
-        # Creating a placeholder string from list of symbols
-        for index, symbol in enumerate(list_of_symbols[x:y]):
-
-            # if index is equal to nine then this is last symbol and doesn't require a comma at the end
-            if index == 9:
-                placeholder += symbol
-
-            # All other index's will require a comma
-            else:
-                placeholder += symbol + ","
-
-        # Using requests to get the last 5 years of the 5 stocks saved under placeholder
-        response = requests.request("GET", f'https://yfapi.net/v8/finance/spark?interval=1d&range=5y&symbols={placeholder}', headers=headers)
-        data = response.json()
-
-        # Extract data and save it to main data frame
-        temp = extract_date_and_price(data)
-        df = pd.concat([df, temp], axis = 1)
-
-    return df
+    
+    return list_of_symbols
 
 def extract_date_and_price(data):
     '''
