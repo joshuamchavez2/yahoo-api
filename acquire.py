@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import os
 from env import api_key
+from symbols_to_track import list_of_symbols
 from datetime import timedelta, datetime
 
 
@@ -38,10 +39,7 @@ def get_data():
     headers = {
         'x-api-key': api_key
         }
-
-    # Get day gainers
-    list_of_symbols = get_day_gainers()
-
+    
     # Create an emtpy DataFrame
     df = pd.DataFrame()
 
