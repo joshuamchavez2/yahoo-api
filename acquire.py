@@ -1,7 +1,29 @@
 import requests
 import pandas as pd
+import os
 from env import api_key
 from datetime import timedelta, datetime
+
+
+def acquire():
+    '''
+    This function will request the data from yahoos API and writes data to
+    a csv file if a local file does not exist, and returns a df.
+    '''
+    if os.path.isfile('closing_data.csv'):
+        
+        # If csv file exists, read in data from csv file.
+        df = pd.read_csv('closing_data.csv', index_col=0)
+        
+    else:
+        
+        # Read fresh data from db into a DataFrame.
+        df = get_data()
+        
+        # Write DataFrame to a csv file.
+        df.to_csv('closing_data.csv')
+        
+    return df
 
 def get_data():
     '''
